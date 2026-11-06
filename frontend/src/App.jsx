@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import "./App.css";
 
-const API = "http://127.0.0.1:5000/api";
+const API = "https://borrowbox-api-i230.onrender.com/api";
 
 const categoryIcons = [
   Wrench, Camera, BookOpen, Dumbbell,
