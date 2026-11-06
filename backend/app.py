@@ -1,4 +1,4 @@
-
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -14,7 +14,7 @@ CORS(app)
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "borrowbox.db"
 
-SECRET_KEY = "change-this-to-a-long-random-secret"
+SECRET_KEY = os.environ.get("SECRET_KEY", "local-development-secret")
 serializer = URLSafeTimedSerializer(SECRET_KEY)
 
 
