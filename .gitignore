@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Environment
+.env
+.env.*
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# React
+node_modules/
+dist/
+
+# Editor
+.vscode/
