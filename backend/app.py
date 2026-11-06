@@ -123,7 +123,14 @@ def initialize_database():
         conn.execute(
         "ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1"
     )
+        
+    admin_email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
 
+    if admin_email:
+        conn.execute(
+            "UPDATE users SET role = 'admin' WHERE LOWER(email) = ?",
+            (admin_email,)
+        )
     conn.commit()
 
     categories = [
