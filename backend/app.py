@@ -294,17 +294,22 @@ def register():
             "error": "Name, valid email and password of at least 8 characters required"
         }), 400
 
+    # Assign admin role only to the configured admin email
+    admin_email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
+    role = "admin" if email == admin_email and admin_email else "user"
+
     conn = get_db()
 
     try:
         cursor = conn.execute("""
-            INSERT INTO users(name, email, password, phone)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO users(name, email, password, phone, role)
+            VALUES (?, ?, ?, ?, ?)
         """, (
             name,
             email,
             generate_password_hash(password),
-            phone
+            phone,
+            role
         ))
 
         user_id = cursor.lastrowid
@@ -318,7 +323,7 @@ def register():
                 "name": name,
                 "email": email,
                 "phone": phone,
-                "role": "user"
+                "role": role
             }
         }), 201
 
@@ -337,33 +342,47 @@ def login():
 
     conn = get_db()
 
-    user = conn.execute(
-        "SELECT * FROM users WHERE email = ?",
-        (email,)
-    ).fetchone()
+    try:
+        user = conn.execute(
+            "SELECT * FROM users WHERE email = ?",
+            (email,)
+        ).fetchone()
 
-    conn.close()
+        if not user or not check_password_hash(user["password"], password):
+            return jsonify({"error": "Incorrect email or password"}), 401
+        # Check whether account is active
+        if user["is_active"] == 0:
+            return jsonify({
+                "error": "Your account has been deactivated. Please contact admin."
+            }), 403
 
-    if not user or not check_password_hash(user["password"], password):
-        return jsonify({"error": "Incorrect email or password"}), 401
+        # Promote only the configured admin email
+        admin_email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
 
-    # Check whether account is active
-    if user["is_active"] == 0:
+        if admin_email and email == admin_email:
+            conn.execute(
+                "UPDATE users SET role = 'admin' WHERE id = ?",
+                (user["id"],)
+            )
+            conn.commit()
+            role = "admin"
+        else:
+            role = user["role"]
+
         return jsonify({
-            "error": "Your account has been deactivated. Please contact admin."
-        }), 403
+            "message": "Login successful",
+            "token": create_token(user["id"]),
+            "user": {
+                "id": user["id"],
+                "name": user["name"],
+                "email": user["email"],
+                "phone": user["phone"],
+                "role": role
+            }
+        })
 
-    return jsonify({
-        "message": "Login successful",
-        "token": create_token(user["id"]),
-        "user": {
-            "id": user["id"],
-            "name": user["name"],
-            "email": user["email"],
-            "phone": user["phone"],
-            "role": user["role"]
-        }
-    })
+    finally:
+        conn.close()
 
 @app.get("/api/me")
 @auth_required
